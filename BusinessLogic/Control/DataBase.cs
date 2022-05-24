@@ -24,9 +24,15 @@ namespace BusinessLogic.Control
             Current = new Person("New User");
 
             Persons.Add(Current);
+
+            Synchronization.UpdateDataBase += UpdateDataBaseHandle;
         }
 
-        public static void EditCurrentPerson(string name) => Current.Name = name;
+        public static void EditCurrentPerson(string name)
+        {
+            Current.Name = name;
+            Synchronization.Serialize();
+        }
 
         public static void SendMessage(string text)
         {
@@ -58,17 +64,14 @@ namespace BusinessLogic.Control
             return info;
         }
 
-        internal static void UpdateDataBase(List<Person> persons, List<Message> messages)
+        public static void Synchronize() => Synchronization.Deserialize();
+
+        internal static bool UpdateDataBaseHandle(List<Message> messages)
         {
             int countPerson = CountPerson, countMessage = CountMessage;
 
-            foreach (var person in persons)
-            {
-                if (!(Persons?.Any(prototype => prototype.Id == person.Id) ?? false))
-                {
-                    Persons?.Add(person);
-                }
-            }
+            if (messages == null)
+                throw new NullReferenceException("messages");
 
             foreach (var message in messages)
             {
@@ -78,10 +81,27 @@ namespace BusinessLogic.Control
                 }
             }
 
+            foreach (var message in Messages)
+            {
+                if (!(Persons?.Any(prototype => prototype.Id == message.Person.Id) ?? false))
+                {
+                    Persons?.Add(message.Person);
+                }
+                else
+                {
+                    Persons.Find(prototype => prototype.Id == message.Person.Id).Name = message.Person.Name;
+                }
+            }
+
+            Messages.Sort();
+
             if (countPerson != CountPerson || countMessage != CountMessage)
             {
                 ChangeDataBase?.Invoke();
+                return true;
             }
+
+            return false;
         }
     }
 }

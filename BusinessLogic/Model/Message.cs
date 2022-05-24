@@ -1,12 +1,21 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace BusinessLogic.Model
 {
-    internal class Message
+    [DataContract]
+    internal class Message: IComparable<Message>
     {
+        [DataMember]
         internal Guid Id { get; set; }
+
+        [DataMember]
         internal string Text { get; set; }
+
+        [DataMember]
         internal Person Person { get; set; }
+
+        [DataMember]
         public DateTime SendingTime { get; set; }
 
         internal Message()
@@ -28,6 +37,14 @@ namespace BusinessLogic.Model
         public override string ToString()
         {
             return $"{SendingTime:T} [{Person}]: {Text}";
+        }
+
+        public int CompareTo(Message? other)
+        {
+            if (other == null)
+                throw new ArgumentNullException("other");
+
+            return SendingTime.CompareTo(other.SendingTime);
         }
     }
 }
