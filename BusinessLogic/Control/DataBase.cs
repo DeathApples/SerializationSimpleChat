@@ -64,8 +64,6 @@ namespace BusinessLogic.Control
             return info;
         }
 
-        public static void Synchronize() => Synchronization.Deserialize();
-
         internal static bool UpdateDataBaseHandle(List<Message> messages)
         {
             int countPerson = CountPerson, countMessage = CountMessage;
