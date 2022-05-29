@@ -3,30 +3,30 @@ using System.IO;
 using System.Threading;
 using BusinessLogic.Model;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Json;
+using System.Runtime.Serialization.Formatters.Soap;
 
 namespace BusinessLogic.Control
 {
     internal static class Synchronization
     {
-        internal static event Func<List<Message>, bool> UpdateDataBase;
+        internal static event Func<List<Message>, bool>? UpdateDataBase;
 
-        private static DataContractJsonSerializer Serializer;
-
-        private static EventWaitHandle Event;
-        private static Mutex Mutex;
+        private static SoapFormatter Formatter;
 
         private static Thread UpdateThread;
 
+        private static EventWaitHandle? Event;
+        private static Mutex Mutex;
+
         static Synchronization()
         {
-            Serializer = new DataContractJsonSerializer(typeof(List<Message>));
-
             UpdateThread = new Thread(Task);
             UpdateThread.IsBackground = true;
             UpdateThread.Start();
 
-            Mutex = new Mutex(false, "NativeSerialization");
+            Formatter = new SoapFormatter();
+
+            Mutex = new Mutex(false, "CustomSerialization");
 
             if (!EventWaitHandle.TryOpenExisting("EventSimpleChat", out Event))
             {
@@ -38,11 +38,11 @@ namespace BusinessLogic.Control
         {
             while (true)
             {
-                Event.WaitOne();
+                Event?.WaitOne();
 
                 if (!Deserialize())
                 {
-                    Event.Reset();
+                    Event?.Reset();
                 }
             }
         }
@@ -53,27 +53,36 @@ namespace BusinessLogic.Control
 
             Mutex.WaitOne();
 
-            using (var file = new FileStream("NativeSerialization.json", FileMode.Create))
+            using (var file = new FileStream("CustomSerialization.soap", FileMode.Create))
             {
-                Serializer.WriteObject(file, DataBase.Messages);
+                Formatter.Serialize(file, DataBase.Messages.ToArray());
             }
 
             Mutex.ReleaseMutex();
 
-            Event.Set();
+            Event?.Set();
         }
 
         internal static bool Deserialize()
         {
             List<Message> newMessages;
 
-            if (File.Exists("NativeSerialization.json"))
+            if (File.Exists("CustomSerialization.soap"))
             {
                 Mutex.WaitOne();
 
-                using (var file = new FileStream("NativeSerialization.json", FileMode.Open))
+                using (var file = new FileStream("CustomSerialization.soap", FileMode.Open))
                 {
-                    newMessages = Serializer.ReadObject(file) as List<Message> ?? new List<Message>();
+                    var newArray = Formatter.Deserialize(file) as Message[];
+
+                    if (newArray != null)
+                    {
+                        newMessages = new List<Message>(newArray);
+                    }
+                    else
+                    {
+                        newMessages = new List<Message>();
+                    }
                 }
 
                 Mutex.ReleaseMutex();

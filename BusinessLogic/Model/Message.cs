@@ -3,22 +3,18 @@ using System.Runtime.Serialization;
 
 namespace BusinessLogic.Model
 {
-    [DataContract]
-    internal class Message: IComparable<Message>
+    [Serializable]
+    public class Message : IComparable<Message>, ISerializable
     {
-        [DataMember]
-        internal Guid Id { get; set; }
+        public Guid Id { get; set; }
 
-        [DataMember]
-        internal string Text { get; set; }
+        public string Text { get; set; }
 
-        [DataMember]
-        internal Person Person { get; set; }
+        public Person Person { get; set; }
 
-        [DataMember]
         public DateTime SendingTime { get; set; }
 
-        internal Message()
+        public Message()
         {
             SendingTime = DateTime.UnixEpoch;
             Person = new Person();
@@ -26,12 +22,26 @@ namespace BusinessLogic.Model
             Text = "";
         }
 
-        internal Message(Person person, string text)
+        public Message(Person person, string text)
         {
             SendingTime = DateTime.Now;
             Id = Guid.NewGuid();
             Person = person;
             Text = text;
+        }
+
+        public Message(SerializationInfo info, StreamingContext context)
+        {
+            object? temp = info.GetString("Id");
+            Id = temp == null ? Guid.Empty : Guid.Parse((string)temp);
+
+            Text = info.GetString("Text") ?? "";
+
+            temp = info.GetValue("Person", typeof(Person));
+            Person = temp == null ? new Person() : (Person)temp;
+
+            temp = info.GetValue("Time", typeof(double));
+            SendingTime = temp == null ? DateTime.UnixEpoch : DateTime.FromOADate((double)temp);
         }
 
         public override string ToString()
@@ -45,6 +55,14 @@ namespace BusinessLogic.Model
                 throw new ArgumentNullException("other");
 
             return SendingTime.CompareTo(other.SendingTime);
+        }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("Id", Id.ToString(), typeof(string));
+            info.AddValue("Text", Text, typeof(string));
+            info.AddValue("Person", Person, typeof(Person));
+            info.AddValue("Time", SendingTime.ToOADate(), typeof(double));
         }
     }
 }
