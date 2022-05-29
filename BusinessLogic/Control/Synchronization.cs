@@ -9,11 +9,11 @@ namespace BusinessLogic.Control
 {
     internal static class Synchronization
     {
-        internal static event Func<List<Message>, bool> UpdateDataBase;
+        internal static event Func<List<Message>, bool>? UpdateDataBase;
 
         private static DataContractJsonSerializer Serializer;
 
-        private static EventWaitHandle Event;
+        private static EventWaitHandle? Event;
         private static Mutex Mutex;
 
         private static Thread UpdateThread;
@@ -38,11 +38,11 @@ namespace BusinessLogic.Control
         {
             while (true)
             {
-                Event.WaitOne();
+                Event?.WaitOne();
 
                 if (!Deserialize())
                 {
-                    Event.Reset();
+                    Event?.Reset();
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace BusinessLogic.Control
 
             Mutex.ReleaseMutex();
 
-            Event.Set();
+            Event?.Set();
         }
 
         internal static bool Deserialize()

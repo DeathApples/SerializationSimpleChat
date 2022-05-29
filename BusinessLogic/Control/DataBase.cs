@@ -7,7 +7,7 @@ namespace BusinessLogic.Control
 {
     public static class DataBase
     {
-        public static event Action ChangeDataBase;
+        public static event Action? ChangeDataBase;
 
         internal static Person Current { get; private set; }
         internal static List<Person> Persons { get; private set; }
